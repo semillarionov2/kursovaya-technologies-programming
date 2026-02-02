@@ -15,9 +15,7 @@ class CLI:
         self.cart = Cart()
         self.receipt_store = ReceiptStore("receipts.txt")
 
-        # Деньги/бонусы можешь менять под задачу
         self.customer = Customer(full_name="Покупатель", cash=50000.0, bonus_points=7000.0)
-
         self.checkout_service = CheckoutService()
 
     def run(self) -> None:
@@ -55,7 +53,7 @@ class CLI:
 
     def _print_header(self) -> None:
         print("\n==============================")
-        print("   МАГАЗИН ТЕХНИКИ (консоль)")
+        print("   ПРОДУКТОВЫЙ МАГАЗИН (консоль)")
         print("==============================")
         print(f"Покупатель: {self.customer.full_name}")
         print(f"Наличные: {self.customer.cash:.2f} ₽ | Бонусы: {self.customer.bonus_points:.2f}")
@@ -63,7 +61,7 @@ class CLI:
         print("==============================\n")
 
     def _print_menu(self) -> None:
-        print("1 — Каталог (просмотр/поиск)")
+        print("1 — Каталог")
         print("2 — Добавить в корзину")
         print("3 — Показать корзину")
         print("4 — Взвесить товар в корзине")
@@ -83,66 +81,36 @@ class CLI:
         if choice == "1":
             self._show_catalog(self.catalog)
         elif choice == "2":
-            q = input("Введите часть названия (например 'ноут'): ").strip().lower()
+            q = input("Введите часть названия: ").strip().lower()
             filtered = [x for x in self.catalog if q in x.name.lower()]
             self._show_catalog(filtered)
         else:
             print("Неизвестный пункт.")
-
-    def _category_of(self, name: str) -> str:
-        n = name.lower()
-        if "ноут" in n:
-            return "Ноутбуки"
-        if "смартф" in n or "телефон" in n:
-            return "Смартфоны"
-        if "монитор" in n:
-            return "Мониторы"
-        if "мыш" in n or "клав" in n:
-            return "Периферия"
-        if "науш" in n:
-            return "Аудио"
-        if "достав" in n or "настрой" in n or "гарант" in n:
-            return "Услуги"
-        if "кабель" in n or "термопаст" in n:
-            return "Расходники"
-        return "Другое"
 
     def _show_catalog(self, items: list) -> None:
         if not items:
             print("Ничего не найдено.")
             return
 
-        # группировка по категориям
-        groups: dict[str, list] = {}
-        for it in items:
-            cat = self._category_of(it.name)
-            groups.setdefault(cat, []).append(it)
-
         idx = 1
-        for cat in sorted(groups.keys()):
-            print(f"\n[{cat}]")
-            for it in groups[cat]:
-                if isinstance(it, WeightedProduct):
-                    print(f"{idx}. {it.name} — {it.price_per_kg:.2f} ₽/кг")
-                else:
-                    print(f"{idx}. {it.name} — {it.calc_cost(1):.2f} ₽/ед.")
-                idx += 1
-
-        print("\n(Нумерация соответствует общему каталогу в пункте 'Добавить в корзину')")
+        for it in items:
+            if isinstance(it, WeightedProduct):
+                print(f"{idx}. {it.name} — {it.calc_cost(1):.2f} ₽/кг")
+            else:
+                print(f"{idx}. {it.name} — {it.calc_cost(1):.2f} ₽/шт")
+            idx += 1
 
     # ---------- Cart actions ----------
 
     def _add_to_cart(self) -> None:
-        # показываем общий каталог с номерами
-        print("\n--- Общий каталог ---")
+        print("\n--- Каталог ---")
         for i, item in enumerate(self.catalog, start=1):
             if isinstance(item, WeightedProduct):
-                print(f"{i}. {item.name} — {item.price_per_kg:.2f} ₽/кг")
+                print(f"{i}. {item.name} — {item.calc_cost(1):.2f} ₽/кг")
             else:
-                print(f"{i}. {item.name} — {item.calc_cost(1):.2f} ₽/ед.")
-        print("---------------------")
+                print(f"{i}. {item.name} — {item.calc_cost(1):.2f} ₽/шт")
 
-        idx = int(input("Номер товара/услуги: ")) - 1
+        idx = int(input("Номер товара: ")) - 1
         if idx < 0 or idx >= len(self.catalog):
             print("Нет такого номера.")
             return
@@ -150,23 +118,17 @@ class CLI:
         item = self.catalog[idx]
 
         if isinstance(item, WeightedProduct):
-            print("Это взвешиваемый товар.")
-            choice = input("Добавить сразу с весом? (y/n): ").strip().lower()
-            if choice == "y":
-                w = float(input("Вес (кг): "))
-                self.cart.add(item, amount=w, is_weighed=True)
-            else:
-                # добавляем как НЕ ВЗВЕШЕНО, вес заглушка
-                self.cart.add(item, amount=0.1, is_weighed=False)
+            w = float(input("Введите вес (кг): "))
+            self.cart.add(item, amount=w, is_weighed=True)
         else:
-            amt = float(input("Количество (например 1): "))
+            amt = float(input("Введите количество: "))
             self.cart.add(item, amount=amt)
 
         print("Добавлено в корзину.")
 
     def _show_cart(self) -> None:
         print("\n--- Корзина ---")
-        if len(self.cart.items) == 0:
+        if not self.cart.items:
             print("Пусто.")
             return
 
@@ -174,55 +136,38 @@ class CLI:
             extra = ""
             if isinstance(ci.item, WeightedProduct) and not ci.is_weighed:
                 extra = " [НЕ ВЗВЕШЕНО]"
-            print(f"{i}. {ci.item.name} — amount={ci.amount} — {ci.cost():.2f} ₽{extra}")
+            print(f"{i}. {ci.item.name} — {ci.amount} — {ci.cost():.2f} ₽{extra}")
 
         print(f"Итого: {self.cart.total():.2f} ₽")
-        print("--------------")
 
     def _weigh_item(self) -> None:
         self._show_cart()
-        if len(self.cart.items) == 0:
-            return
-
-        idx = int(input("Номер позиции для взвешивания: ")) - 1
+        idx = int(input("Номер позиции: ")) - 1
         w = float(input("Введите вес (кг): "))
         self.cart.weigh_item(idx, w)
         print("Товар взвешен.")
 
     def _remove_from_cart(self) -> None:
         self._show_cart()
-        if len(self.cart.items) == 0:
-            return
-        idx = int(input("Номер позиции для удаления: ")) - 1
+        idx = int(input("Номер позиции: ")) - 1
         self.cart.remove(idx)
         print("Удалено.")
 
-    # ---------- Payment (with required scenario) ----------
+    # ---------- Payment ----------
 
     def _pay(self) -> None:
         self._show_cart()
-        if len(self.cart.items) == 0:
+        if not self.cart.items:
             return
 
-        # 1) Если есть НЕ ВЗВЕШЕНО — предложим взвесить сразу
         if self.cart.has_unweighed_items():
-            print("\nЕсть товары, которые НЕ ВЗВЕШЕНЫ. Нужно взвесить перед оплатой.")
-            while self.cart.has_unweighed_items():
-                self._show_cart()
-                idx = int(input("Номер позиции, которую взвесить (0 — отмена оплаты): ")) - 1
-                if idx == -1:
-                    return
-                w = float(input("Введите вес (кг): "))
-                try:
-                    self.cart.weigh_item(idx, w)
-                except Exception as e:
-                    print(f"Ошибка: {e}")
+            print("Есть невзвешенные товары.")
+            return
 
-        # выбор способа оплаты
         print("\n--- Оплата ---")
-        print("1 — Только наличными")
-        print("2 — Только бонусами")
-        print("3 — Смешанная (бонусы + наличные)")
+        print("1 — Наличные")
+        print("2 — Бонусы")
+        print("3 — Смешанная")
         choice = input("Выбери: ").strip()
 
         if choice == "1":
@@ -231,47 +176,23 @@ class CLI:
             payment = BonusOnlyPayment()
         elif choice == "3":
             b = float(input("Сколько бонусов списать? "))
-            payment = MixedPayment(bonus_to_use=b)
+            payment = MixedPayment(b)
         else:
-            print("Неизвестный вариант оплаты.")
+            print("Неверный выбор.")
             return
 
-        # 2) Сценарий "не хватает денег" -> удаляй из корзины пока не хватит
-        while True:
-            try:
-                receipt = self.checkout_service.checkout(self.customer, self.cart, payment)
-                print("\n" + receipt.text)
-
-                # 3) Сохраняем чек в файл
-                self.receipt_store.save(receipt.text)
-                print("\nЧек сохранён в файл: receipts.txt")
-
-                # очищаем корзину
-                self.cart = Cart()
-                return
-
-            except CheckoutError as e:
-                msg = str(e)
-                print(f"\nОплата не прошла: {msg}")
-
-                if "Недостаточно" in msg:
-                    print("\nНе хватает средств. Удаляйте товары из корзины, пока сумма не станет меньше.")
-                    self._show_cart()
-                    idx = int(input("Номер позиции для удаления (0 — отмена оплаты): ")) - 1
-                    if idx == -1:
-                        return
-                    try:
-                        self.cart.remove(idx)
-                    except Exception as ex:
-                        print(f"Ошибка удаления: {ex}")
-                else:
-                    # другие ошибки (например, пустая корзина)
-                    return
+        try:
+            receipt = self.checkout_service.checkout(self.customer, self.cart, payment)
+            print("\n" + receipt.text)
+            self.receipt_store.save(receipt.text)
+            self.cart = Cart()
+        except CheckoutError as e:
+            print(f"Ошибка оплаты: {e}")
 
     # ---------- Purchases ----------
 
     def _show_purchases(self) -> None:
-        print("\n--- История покупок (в памяти) ---")
+        print("\n--- История покупок ---")
         if not self.customer.purchases:
             print("Пока нет покупок.")
             return

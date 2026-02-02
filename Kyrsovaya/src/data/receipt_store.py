@@ -2,6 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
+# Класс для хранения чеков покупок в текстовом файле
 class ReceiptStore:
     def __init__(self, file_path: str = "receipts.txt") -> None:
         self._path = Path(file_path)

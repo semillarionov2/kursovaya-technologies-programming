@@ -4,21 +4,22 @@ from domain.items import Product, WeightedProduct, Service, Purchasable
 
 
 def get_catalog() -> list[Purchasable]:
-    # Каталог магазина техники
+    # Каталог продуктового магазина
     return [
-        Product("Смартфон", 24999.0),
-        Product("Ноутбук", 69999.0),
-        Product("Монитор 27\"", 17999.0),
-        Product("Клавиатура", 2999.0),
-        Product("Мышь", 1499.0),
-        Product("Наушники", 4999.0),
+        # Штучные товары
+        Product("Хлеб", 49.0),
+        Product("Молоко", 89.0),
+        Product("Яйца (10 шт.)", 129.0),
+        Product("Сахар", 79.0),
+        Product("Масло сливочное", 199.0),
 
-        # Взвешиваемые товары (для выполнения требования задания)
-        WeightedProduct("Кабель (на отрез, кг)", 1200.0),
-        WeightedProduct("Термопаста (на отрез, кг)", 15000.0),
+        # Взвешиваемые товары
+        WeightedProduct("Мясо", 599.0),          # ₽ за кг
+        WeightedProduct("Куриное филе", 449.0),  # ₽ за кг
+        WeightedProduct("Картофель", 39.0),      # ₽ за кг
+        WeightedProduct("Яблоки", 99.0),          # ₽ за кг
 
         # Услуги
-        Service("Доставка", 900.0),
-        Service("Настройка ноутбука", 1500.0),
-        Service("Расширенная гарантия", 3500.0),
+        Service("Пакет", 10.0),
+        Service("Доставка", 299.0),
     ]

@@ -5,30 +5,35 @@ from dataclasses import dataclass
 from domain.customer import Customer
 
 
+# Результат выполнения оплаты
 @dataclass
 class PaymentResult:
-    paid_cash: float
-    paid_bonus: float
+    paid_cash: float     # Сумма, оплаченная наличными
+    paid_bonus: float    # Сумма, оплаченная бонусами
 
 
+# Абстрактный класс стратегии оплаты
 class PaymentStrategy(ABC):
     @abstractmethod
     def pay(self, customer: Customer, total: float) -> PaymentResult:
         pass
 
 
+# Оплата только наличными средствами
 class CashOnlyPayment(PaymentStrategy):
     def pay(self, customer: Customer, total: float) -> PaymentResult:
         customer.pay_cash(total)
         return PaymentResult(paid_cash=total, paid_bonus=0.0)
 
 
+# Оплата только бонусными баллами
 class BonusOnlyPayment(PaymentStrategy):
     def pay(self, customer: Customer, total: float) -> PaymentResult:
         customer.pay_bonus(total)
         return PaymentResult(paid_cash=0.0, paid_bonus=total)
 
 
+# Смешанный способ оплаты: часть бонусами, остаток наличными
 class MixedPayment(PaymentStrategy):
     """Часть бонусами, остаток наличными"""
 
